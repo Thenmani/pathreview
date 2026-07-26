@@ -31,6 +31,16 @@ Both detect() and scrub() should recognize (324) 901-1234 as a phone number, alo
 
 **Cohort ledger:** Issue added to cohort ledger
 
+## Week 8 — Reproduction & solution planning
+
+**Reproduction commit link:** https://github.com/Thenmani/pathreview/commit/8c1280f
+
+**Reproduction summary:**
+Wrote few failing test cases to confirm that both `detect()`
+and `scrub()` fail to recognize parenthesized US phone numbers like `(324) 901-1234`.
+`detect()` returns an empty list and `scrub()` leaves the number unredacted, confirming
+the root cause is the `phone_us` regex in `safety/pii_scrubber.py`.
+
 **Reproduction steps:**
 1. Located the relevant file: `safety/pii_scrubber.py`, and the test file: `tests/unit/test_pii_scrubber.py`.
 2. Added a new test, `test_paren_phone_reproduces_bug`, that calls `detect()` and `scrub()` on the input `"Call me at (324) 901-1234"`.
@@ -50,3 +60,7 @@ the shape of the bug more thoroughly. All of these currently fail, since the fix
   parenthesized numbers (e.g. footnote references like `(12)`) being misdetected
   as phone numbers
 
+**PLAN.md link:** https://github.com/Thenmani/pathreview/blob/fix/146-PII-US-phone-no-format-parenthesis/PLAN.md
+
+**Blockers or open questions:**
+None currently.

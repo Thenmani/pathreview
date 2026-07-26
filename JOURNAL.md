@@ -20,7 +20,8 @@ Both detect() and scrub() should recognize (324) 901-1234 as a phone number, alo
 - I've located the relevant files and confirmed they exist in the codebase
 - I've understood the surrounding code well
 - I can describe clearly what the user sees before the fix and what they see after.
-- I've selected Tier 1, as the scope is realistic for this first open source contribution. It is self contained and there are no blockers and dependencies.
+- I've selected Tier 1, as the scope is realistic for this first open source contribution. 
+- It is self contained and there are no blockers and dependencies.
 - I've checked the issue comments and the ledger's Claims count, and I'm fine with how many others are on this issue.
 - I've found the test file and read the related unit test cases.
 
@@ -29,3 +30,12 @@ Both detect() and scrub() should recognize (324) 901-1234 as a phone number, alo
 **Setup confirmation:** App runs locally at localhost:5173
 
 **Cohort ledger:** Issue added to cohort ledger
+
+**Reproduction steps:**
+1. Located the relevant file: `safety/pii_scrubber.py`, and the test file: `tests/unit/test_pii_scrubber.py`.
+2. Added a new test, `test_paren_phone_reproduces_bug`, that calls `detect()` and `scrub()` on the input `"Call me at (324) 901-1234"`.
+3. Ran the test:
+4. Test failed, confirming the bug:
+
+
+

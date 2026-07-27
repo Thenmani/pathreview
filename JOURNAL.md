@@ -33,7 +33,9 @@ Both detect() and scrub() should recognize (324) 901-1234 as a phone number, alo
 
 ## Week 8 — Reproduction & solution planning
 
-**Reproduction commit link:** https://github.com/Thenmani/pathreview/commit/8c1280f
+**Reproduction commit link:** 
+- https://github.com/Thenmani/pathreview/commit/8c1280f, 
+- https://github.com/Thenmani/pathreview/commit/6204c9f
 
 **Reproduction summary:**
 Wrote few failing test cases to confirm that both `detect()`

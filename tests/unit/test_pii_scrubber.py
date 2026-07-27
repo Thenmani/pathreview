@@ -67,6 +67,20 @@ class TestPIIScrubber:
         assert len(detected) > 0, "BUG: detect() found no PII for paren phone"
         assert "[REDACTED]" in scrubbed, "BUG: scrub() did not redact paren phone"
 
+    def test_paren_phone_detect_reproduces_bug(self, scrubber: PIIScrubber) -> None:
+        """Reproduction for issue #146: detect() fails to find parenthesized
+        phone numbers. EXPECTED TO FAIL until the fix is applied."""
+        text = "Call me at (324) 901-1234"
+        detected = scrubber.detect(text)
+        assert len(detected) > 0, "BUG: detect() found no PII for paren phone"
+
+    def test_paren_phone_scrub_reproduces_bug(self, scrubber: PIIScrubber) -> None:
+        """Reproduction for issue #146: scrub() fails to redact parenthesized
+        phone numbers. EXPECTED TO FAIL until the fix is applied."""
+        text = "Call me at (324) 901-1234"
+        scrubbed = scrubber.scrub(text)
+        assert "[REDACTED]" in scrubbed, "BUG: scrub() did not redact paren phone"
+
     # --- New edge-case tests for parenthesized phone format (issue #146) ---
 
     def test_phone_paren_no_space_after_close(self, scrubber: PIIScrubber) -> None:

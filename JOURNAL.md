@@ -43,7 +43,7 @@ the root cause is the `phone_us` regex in `safety/pii_scrubber.py`.
 
 **Reproduction steps:**
 1. Located the relevant file: `safety/pii_scrubber.py`, and the test file: `tests/unit/test_pii_scrubber.py`.
-2. Added a new test, `test_paren_phone_reproduces_bug`, that calls `detect()` and `scrub()` on the input `"Call me at (324) 901-1234"`.
+2. Added test cases, `test_paren_phone_reproduces_bug`, `test_paren_phone_detect_reproduces_bug`, `test_paren_phone_scrub_reproduces_bug` that calls `detect()` and `scrub()` on the input `"Call me at (324) 901-1234"`.
 3. Ran the test.
 4. Test failed, confirming the bug.
 

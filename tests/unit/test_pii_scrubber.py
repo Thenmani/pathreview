@@ -134,6 +134,33 @@ class TestPIIScrubber:
         phone_detections = [d for d in detected if "phone" in d["type"]]
         assert len(phone_detections) == 0
 
+    def test_phone_country_code_with_parens(self, scrubber: PIIScrubber) -> None:
+        """Test country code combined with parenthesized area code."""
+        formats = [
+            "+1 (555) 123-4567",
+            "1 (555) 123-4567",
+            "+1(555)123-4567",
+        ]
+        for phone in formats:
+            text = f"Contact: {phone}"
+            scrubbed = scrubber.scrub(text)
+            assert "[REDACTED]" in scrubbed, f"Failed to redact: {phone}"
+
+    def test_multiple_paren_phones_in_one_string(self, scrubber: PIIScrubber) -> None:
+        """Test that multiple parenthesized phone numbers are all redacted."""
+        text = "Call (555) 123-4567 or (555) 987-6543 for support."
+        scrubbed = scrubber.scrub(text)
+        assert scrubbed.count("[REDACTED]") >= 2
+        assert "(555) 123-4567" not in scrubbed
+        assert "(555) 987-6543" not in scrubbed
+
+    def test_malformed_two_digit_area_code_not_matched(self, scrubber: PIIScrubber) -> None:
+        """Test that a 2-digit area code is NOT matched as a phone number."""
+        text = "Call (55) 123-4567 for info."
+        detected = scrubber.detect(text)
+        phone_detections = [d for d in detected if d["type"] == "phone_us"]
+        assert len(phone_detections) == 0
+
     # --- End new edge-case tests ---
 
     def test_international_phone_redaction(self, scrubber: PIIScrubber) -> None:

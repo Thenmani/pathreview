@@ -64,5 +64,74 @@ the shape of the bug more thoroughly. All of these currently fail, since the fix
 
 **PLAN.md link:** https://github.com/Thenmani/pathreview/blob/fix/146-PII-US-phone-no-format-parenthesis/PLAN.md
 
+## Week 9 — Solution building & PR submission
+
+### Check-in 1 (mid-week)
+
+**Current progress:**
+- Identified the root cause: the `phone_us` separator class `[-.]?` did not
+  include whitespace, so `(555) 123-4567` failed to match at the space after
+  the closing parenthesis.
+- Came up with an initial working fix — extended all three separator slots from
+  `[-.]?` to `[-.\s]?` and replaced the leading `\b` with `(?<!\w)` for
+  reliable boundary matching next to parentheses. Verified all reproduction
+  tests passed.
+- Optimized the fix further by removing unused capture groups `([0-9]{3})` →
+  `[0-9]{3}` since `scrub()` uses a fixed replacement string and `detect()`
+  reads the whole match — no backreferences needed.
+- All reproduction tests now pass (`test_paren_phone_detect_reproduces_bug`,
+  `test_paren_phone_scrub_reproduces_bug`).
+- Added 3 additional edge-case tests: country code + parens combined,
+  multiple phone numbers in one string, and a negative case for malformed
+  2-digit area codes.
+- Full suite: 37 passed, 1 failed — the one failure is a **pre-existing,
+  unrelated bug** in the `street_address` pattern (`test_mixed_pii_and_text`):
+  the pattern incorrectly matches the substring "Pl" inside the word
+  "applications", partially redacting it as "[REDACTED]ications". This is out
+  of scope for issue #146 and was present before this fix was applied.
+
+**Fix implementation note:**
+While committing `safety/pii_scrubber.py`, the pre-commit hooks (ruff) blocked
+the commit due to 2 pre-existing errors in untouched lines:
+- `B007` — unused loop variable `pii_type` in both `scrub()` and `detect()`
+- `E501` — `street_address` pattern line too long (283 chars)
+
+Fixed both as part of the commit:
+- Renamed `pii_type` to `_pii_type` in both loops (underscore prefix signals
+  intentionally unused to ruff).
+- Split the `street_address` pattern across multiple lines using implicit
+  string concatenation.
+
+**Lesson learned:** During the rename, `detect()` accidentally referenced
+the old `pii_type` name in the loop body while the loop variable was already
+renamed to `_pii_type` — caused 11 test failures. Caught immediately by
+running the full test suite. Also missed the same rename in `scrub()` on
+the first attempt — ruff caught it on the next commit try. Run tests after
+every change, even one-character renames.
+
+**Self-review against contribution standards:**
+Ran `make check` and `make test-unit` before opening the draft PR.
+
+- `ruff check safety/pii_scrubber.py tests/unit/test_pii_scrubber.py` returned
+  6 errors initially. Two were in my files (trailing whitespace in
+  `test_pii_scrubber.py`) — fixed using `ruff check --fix`. The remaining 4
+  errors are pre-existing in `safety/pii_scrubber.py` (unsorted imports,
+  street_address pattern too long, unused loop variable, logger line too long)
+  — none introduced by my changes.
+- `make test-unit` result: 391 passed, 49 failed. All 49 failures are
+  pre-existing across unrelated modules. Zero new failures introduced.
+- In `tests/unit/test_pii_scrubber.py` specifically: 37 passed, 1 failed.
+  The single failure (`test_mixed_pii_and_text`) is the pre-existing
+  `street_address` false-positive bug — not related to this fix.
+
+**Result:** My changes introduce no new failures in either `make check`
+or `make test-unit`.
+
+**Next steps:**
+- Add remaining edge-case tests before final PR merge.
+- Address any draft PR review feedback.
+- Record Loom walkthrough video.
+- Update `JOURNAL.md` with final Week 9 summary once all steps are complete.
+
 **Blockers or open questions:**
 None currently.

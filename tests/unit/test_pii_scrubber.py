@@ -53,7 +53,7 @@ class TestPIIScrubber:
             scrubbed = scrubber.scrub(text)
             assert "[REDACTED]" in scrubbed
 
-    # --- Reproduction test for issue #146 ---
+    # --- Reproduction tests for issue #146 ---
 
     def test_paren_phone_reproduces_bug(self, scrubber: PIIScrubber) -> None:
         """Reproduction for issue #146: parenthesized phone number is not
@@ -81,7 +81,7 @@ class TestPIIScrubber:
         scrubbed = scrubber.scrub(text)
         assert "[REDACTED]" in scrubbed, "BUG: scrub() did not redact paren phone"
 
-    # --- New edge-case tests for parenthesized phone format (issue #146) ---
+    # --- Edge-case tests for parenthesized phone format (issue #146) ---
 
     def test_phone_paren_no_space_after_close(self, scrubber: PIIScrubber) -> None:
         """Test parenthesized phone with no space after closing paren."""
@@ -126,8 +126,7 @@ class TestPIIScrubber:
         assert any("phone" in d["type"] for d in detected)
 
     def test_paren_phone_no_false_positive_on_short_numbers(self, scrubber: PIIScrubber) -> None:
-        """Test that unrelated parenthesized short numbers (e.g. footnotes,
-        counts) aren't misdetected as phone numbers."""
+        """Test that unrelated parenthesized short numbers are not misdetected."""
         text = "See note (12) on page 4 for details."
         detected = scrubber.detect(text)
 
@@ -161,7 +160,99 @@ class TestPIIScrubber:
         phone_detections = [d for d in detected if d["type"] == "phone_us"]
         assert len(phone_detections) == 0
 
-    # --- End new edge-case tests ---
+    def test_phone_with_trailing_punctuation(self, scrubber: PIIScrubber) -> None:
+        """Test parenthesized phone followed immediately by punctuation."""
+        cases = [
+            "Call (555) 123-4567.",
+            "Call (555) 123-4567,",
+            "Call (555) 123-4567!",
+        ]
+        for text in cases:
+            scrubbed = scrubber.scrub(text)
+            assert "[REDACTED]" in scrubbed, f"Failed to redact in: {text}"
+
+    def test_phone_inside_quotes(self, scrubber: PIIScrubber) -> None:
+        """Test parenthesized phone number inside quotation marks."""
+        text = "The number listed was '(555) 123-4567' in the document."
+        scrubbed = scrubber.scrub(text)
+        assert "[REDACTED]" in scrubbed
+        assert "(555) 123-4567" not in scrubbed
+
+    def test_phone_all_spaces_separator(self, scrubber: PIIScrubber) -> None:
+        """Test phone number written with spaces as all separators."""
+        text = "Contact: 555 123 4567"
+        scrubbed = scrubber.scrub(text)
+        assert "[REDACTED]" in scrubbed
+        assert "555 123 4567" not in scrubbed
+
+    def test_ssn_not_matched_as_phone(self, scrubber: PIIScrubber) -> None:
+        """Test that an SSN (NNN-NN-NNNN) is not matched as a phone_us number."""
+        text = "SSN: 123-45-6789"
+        detected = scrubber.detect(text)
+        phone_detections = [d for d in detected if d["type"] == "phone_us"]
+        assert len(phone_detections) == 0
+
+    def test_seven_digit_number_not_matched(self, scrubber: PIIScrubber) -> None:
+        """Test that a 7-digit number without area code is NOT matched."""
+        text = "Old local number: 123-4567"
+        detected = scrubber.detect(text)
+        phone_detections = [d for d in detected if d["type"] == "phone_us"]
+        assert len(phone_detections) == 0
+
+    def test_phone_detect_position_accuracy_paren_format(self, scrubber: PIIScrubber) -> None:
+        """Test that start/end positions are accurate for parenthesized format."""
+        text = "Call me at (555) 123-4567 today."
+        detected = scrubber.detect(text)
+        phone_detections = [d for d in detected if d["type"] == "phone_us"]
+        assert len(phone_detections) > 0
+        item = phone_detections[0]
+        extracted = text[item["start"] : item["end"]]
+        assert "555" in extracted
+        assert "123" in extracted
+        assert "4567" in extracted
+
+    def test_phone_country_code_with_dot_separator(self, scrubber: PIIScrubber) -> None:
+        """Test country code with dot separator is redacted."""
+        text = "Call +1.555.123.4567 for help."
+        scrubbed = scrubber.scrub(text)
+        assert "[REDACTED]" in scrubbed
+        assert "+1.555.123.4567" not in scrubbed
+
+    def test_phone_country_code_with_dash_separator(self, scrubber: PIIScrubber) -> None:
+        """Test country code with dash separator is redacted."""
+        text = "Call +1-555-123-4567 for help."
+        scrubbed = scrubber.scrub(text)
+        assert "[REDACTED]" in scrubbed
+        assert "+1-555-123-4567" not in scrubbed
+
+    def test_phone_four_digit_area_code_not_matched(self, scrubber: PIIScrubber) -> None:
+        """Test that a 4-digit area code is NOT matched as a phone number."""
+        text = "Number: (5555) 123-4567"
+        detected = scrubber.detect(text)
+        phone_detections = [d for d in detected if d["type"] == "phone_us"]
+        assert len(phone_detections) == 0
+
+    def test_phone_with_letters_not_matched(self, scrubber: PIIScrubber) -> None:
+        """Test that alphanumeric strings are not matched as phone numbers."""
+        text = "Code: (555) 123-456A"
+        detected = scrubber.detect(text)
+        phone_detections = [d for d in detected if d["type"] == "phone_us"]
+        assert len(phone_detections) == 0
+
+    def test_year_range_not_matched_as_phone(self, scrubber: PIIScrubber) -> None:
+        """Test that a year range like 2023-2024 is not matched as a phone number."""
+        text = "Report covers years 2023-2024."
+        detected = scrubber.detect(text)
+        phone_detections = [d for d in detected if d["type"] == "phone_us"]
+        assert len(phone_detections) == 0
+
+    def test_phone_no_separators_ten_digits(self, scrubber: PIIScrubber) -> None:
+        """Test that a raw 10-digit number is redacted (conservative scrubber bias)."""
+        text = "Contact: 5551234567"
+        scrubbed = scrubber.scrub(text)
+        assert "[REDACTED]" in scrubbed
+
+    # --- End edge-case tests ---
 
     def test_international_phone_redaction(self, scrubber: PIIScrubber) -> None:
         """Test international phone number is redacted."""

@@ -135,3 +135,34 @@ or `make test-unit`.
 
 **Blockers or open questions:**
 None currently.
+
+### Check-in 2 (end of week)
+
+**PR link:** https://github.com/[upstream-repo]/pathreview/pull/391
+
+**Branch:** `fix/146-PII-US-phone-no-format-parenthesis`
+
+**What you built:**
+Updated the `phone_us` regex in `safety/pii_scrubber.py` to accept
+whitespace as a valid separator between number groups, so parenthesized
+US phone numbers like `(555) 123-4567` are correctly detected and
+redacted alongside already-supported dashed and dotted formats. Also
+replaced the leading `\b` boundary anchor with `(?<!\w)` for reliable
+matching next to parentheses, and removed unused capture groups to
+simplify the pattern.
+
+**Tests added or updated:**
+- `tests/unit/test_pii_scrubber.py` — added 18 new tests covering:
+  reproduction of the original bug (independently verified for both
+  `detect()` and `scrub()`), parenthesized format variations (no space,
+  dash, dot after closing paren), country code + parens combined,
+  multiple numbers in one string, trailing punctuation, inside quotes,
+  all-spaces separator, and negative cases (2-digit area code, 4-digit
+  area code, 7-digit number, letters mixed in, year range, SSN shape,
+  raw 10-digit number).
+
+**Self-review confirmation:** [x] make check passes  [x] make test-unit passes
+
+**Loom walkthrough:** https://www.loom.com/share/7b2425dc1c98438d86a0d21f7b527a7e
+
+**Draft PR feedback received from:** None yet

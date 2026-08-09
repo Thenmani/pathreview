@@ -252,6 +252,14 @@ class TestPIIScrubber:
         scrubbed = scrubber.scrub(text)
         assert "[REDACTED]" in scrubbed
 
+    def test_phone_does_not_merge_across_newlines(self, scrubber: PIIScrubber) -> None:
+        """Test that separate numbers on different lines are NOT merged into
+        a single false-positive phone number (e.g. table columns)."""
+        text = "Row values:\n324\n901\n1234"
+        detected = scrubber.detect(text)
+        phone_detections = [d for d in detected if d["type"] == "phone_us"]
+        assert len(phone_detections) == 0
+
     # --- End edge-case tests ---
 
     def test_international_phone_redaction(self, scrubber: PIIScrubber) -> None:

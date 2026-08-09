@@ -165,4 +165,94 @@ simplify the pattern.
 
 **Loom walkthrough:** https://www.loom.com/share/7b2425dc1c98438d86a0d21f7b527a7e
 
-**Draft PR feedback received from:** None yet
+**Draft PR feedback received from:** Received PR feedback from Jess, a senior at UC San Diego studying Data Science & Business, who is currently building risk models at Wells Fargo using traditional ML methods and LLM to automize previously manual process.
+
+## Week 10 — Iteration & reflection
+
+### Reviewer feedback
+
+**Feedback received:** [x] Yes  [ ] No — still awaiting review
+
+**Summary of feedback:**
+A reviewer verified the fix locally — reproduced the bug on `main`, confirmed
+my reproduction tests fail on `main` and pass on my branch, and confirmed the
+full unit suite went from 53 to 49 failures with zero new failures introduced
+(4 cleared). They also pressure-tested edge cases I hadn't explicitly called
+out (long digit strings not over-matching, the `(55)` negative case holding,
+the country-code variant working) and called out the reproduce-first tests
+and negative case test as a strength.
+
+They raised one substantive design question: the separator class `[-.\s]?`
+uses `\s`, which matches not just spaces but also `\n` and `\t`. This meant
+`scrub("324\n901\n1234")` — three unrelated numbers stacked on separate
+lines, e.g. table columns — would get merged and redacted as a single fake
+phone number. They noted over-redaction is arguably fine for a scrubber
+(fail-safe bias) but flagged it as worth understanding as a design choice
+rather than an accident.
+
+**How you responded:**
+Verified the concern directly — confirmed `"324\n901\n1234"` was in fact
+matching as one number under the original pattern. Agreed it was an
+unintended side effect rather than an intentional design choice, since
+nothing in scope ever required tab or newline as a valid separator.
+Narrowed the separator class from `[-.\s]?` to `[-. ]?` (literal space
+only) in all three separator slots. Confirmed all existing tests still
+passed with the narrower class, then added a new regression test,
+`test_phone_does_not_merge_across_newlines`, to lock in the corrected
+behavior. Committed and pushed the fix, then replied to the reviewer
+explaining the change and thanking her for reviewing and pressure-testing the edges.
+
+---
+
+### Reflection
+
+**What was harder than you expected?**
+The regex fix itself was the easy part — the harder part was the mechanics
+around it. I lost committed work twice when switching between PowerShell
+and Git Bash mid-session, ended up with silently duplicated test methods
+after a messy paste (Python just keeps the last definition, so pytest was
+quietly running 43 tests when the file actually had 55 defined), and spent
+real time chasing pre-commit hook failures (ruff, black, mypy) that had
+nothing to do with my actual change but still blocked every commit until
+resolved. None of that was visible from the issue description — it only
+showed up by actually doing the work.
+
+**What did you learn about working in a large codebase?**
+A one-line bug fix is never really one line. Getting it merged means
+understanding pre-existing lint/type debt well enough to prove your change
+didn't cause it, running the full test suite (not just the file you touched)
+to catch failures in unrelated modules, and documenting all of that clearly
+enough that a reviewer doesn't have to take your word for it. I also learned
+that "done" for a fix and "done" for a mergeable PR are different bars —
+the second one includes tests, self-review, and being honest about what's
+still broken elsewhere in the codebase. Peer review also turned out to
+matter more than I expected: I had tested plenty of edge cases myself, but
+the reviewer caught something I hadn't considered — `\s` matching newlines
+and tabs, not just spaces — simply by testing an input I hadn't thought to
+try. A second, independent set of eyes catches things that self-review
+alone genuinely misses, even after you think you've covered every case.
+
+**How did AI tools help — and where did they fall short?**
+AI was most useful for two things: systematically generating and verifying
+edge cases (running dozens of inputs against the regex before writing tests,
+rather than guessing), and untangling git/terminal issues in the moment —
+diagnosing why a commit was blocked, why 12 tests silently disappeared, why
+"nothing to commit" showed up after a terminal switch. Where it fell short
+was catching my own copy-paste mistakes before they happened — the duplicate
+test methods and indentation errors came from me pasting code by hand, and
+AI could only help diagnose them after the fact, not prevent them. 
+
+**What would you do differently if you started over?**
+I'd verify the test file's actual state (`grep -c "def test_"`) after every
+paste instead of assuming the edit landed correctly — that would have caught
+the duplicate methods immediately instead of after a confusing "1 failed,
+26 passed" surprise. I'd also stick to one terminal environment for the
+whole session instead of switching between PowerShell and Git Bash, since
+that's what caused me to lose staged changes twice.
+
+**What are you most proud of from this module?**
+What stands out most is having carried the complete open-source contribution workflow through
+to the end (Reproduce, plan, fix, test, self-review, draft PR, raise PR, respond
+to review feedback, fix and iterate). Also the moment of handling reviewer's feedback
+on the `\s` separator issue, smoothly closing the loop with validating, fixing, regression testing and responding, so the same
+issue can't silently return.
